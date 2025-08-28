@@ -4,14 +4,17 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import textwrap
-from transformers import pipeline
-
+from test_inference import chatbot
+import time
 
 st.title("ChatBot")
 query=st.chat_input("Ask a question about the PDF")
 # File uploader
 with st.sidebar:
    uploaded_file = st.file_uploader("Upload a PDF", type=["pdf","txt"])
+   huggingface_api_key = st.text_input("Huggingface OpenAI API Key", key="chatbot_api_key", type="password")
+   "[Get an Huggingface API key](https://huggingface.co/settings/tokens/new?tokenType=read)"
+    
 if "history" not in st.session_state:
     st.session_state.history = [] 
 for role,message in st.session_state.history:
@@ -44,12 +47,38 @@ if query:
     embeddings = embeddings.reshape(1, -1)  
     index.add((embeddings))  
     
-    qa_pipeline=pipeline("text2text-generation",model="google/flan-t5-small")
+ 
     query_embedding=embed_model.encode([query])
     distances,indices=index.search(np.array(query_embedding),k=4)
     retrieved_texts=[a[i] for i in indices[0]]
     context=" ".join(retrieved_texts)
     prompt=f"context: {context} \n\nQuestion: {query}\nAnswer"
-    result=qa_pipeline(prompt,max_length=200,do_sample=False) 
-    st.chat_message("assistant").markdown(result[0]['generated_text'])
-    st.session_state.history.append(("assistant", result[0]['generated_text']))
+
+
+
+    with st.chat_message("assistant"): 
+        message_placeholder = st.empty()
+        full_response = ""
+        if (huggingface_api_key) :
+            try:
+                assistant_response = chatbot(prompt, huggingface_api_key)
+            except Exception as e:
+                assistant_response = f"Error: {str(e)}" 
+        else:
+            assistant_response = "Please enter your Huggingface API key in the sidebar to get a response."
+            # Simulate stream of response with milliseconds delay
+        for chunk in assistant_response.split():
+            full_response += chunk + " "
+            time.sleep(0.05)
+                # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+
+
+
+
+
+
+    
+
+    st.session_state.history.append(("assistant", full_response))
