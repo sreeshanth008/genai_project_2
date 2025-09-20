@@ -52,7 +52,7 @@ if query:
     distances,indices=index.search(np.array(query_embedding),k=4)
     retrieved_texts=[a[i] for i in indices[0]]
     context=" ".join(retrieved_texts)
-    prompt=f"context: {context} \n\nQuestion: {query}\nAnswer"
+    prompt=f"You are a helpful assistant for our company's knowledge base. Use ONLY the context provided below to answer the question. If the answer is not in the context, you must respond with the exact phrase: 'I could not find an answer in the knowledge base.' Do not try to make up an answer.Context: {context}Question: {query}"
 
 
 
